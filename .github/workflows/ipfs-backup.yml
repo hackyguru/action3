@@ -12,7 +12,7 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     env:
       UPLOAD_ID: ${{ github.run_id }}
     steps:
@@ -22,7 +22,6 @@ jobs:
           fetch-depth: 0
 
       - name: Upload to IPFS
-        id: upload
         run: |
           # Set API URL
           API_URL="${{ vars.NEXT_PUBLIC_API_URL || 'https://3856-94-119-32-15.ngrok-free.app' }}"
@@ -45,15 +44,14 @@ jobs:
           CHUNK_NUM=1
           for chunk in chunk-*; do
             echo "Uploading chunk $CHUNK_NUM of $TOTAL_CHUNKS"
-            RESPONSE=$(curl -X POST \
+            curl -X POST \
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               -H "X-GitHub-Repository: ${{ github.repository }}" \
               -H "X-Upload-Id: ${{ env.UPLOAD_ID }}" \
               -H "X-Chunk-Number: $CHUNK_NUM" \
               -H "X-Total-Chunks: $TOTAL_CHUNKS" \
               -F "chunk=@$chunk" \
-              "$API_URL/api/storage/upload/chunk")
-            echo "Response: $RESPONSE"
+              "$API_URL/api/storage/upload/chunk"
             CHUNK_NUM=$((CHUNK_NUM+1))
           done
           
@@ -67,20 +65,3 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{\"uploadId\":\"${{ env.UPLOAD_ID }}\"}" \
             "$API_URL/api/storage/upload/complete"
-
-        - name: Update .gitvault and README
-        run: |
-          echo "latest_cid: $CID" > .gitvault
-          echo "last_backup: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> .gitvault
-
-          # Update README.md with the badge
-          sed -i '/^# GitVault/ a          
-[![View on IPFS](https://img.shields.io/badge/View%20on-IPFS-blue)](https://ipfs.io/ipfs/'$CID')
-' README.md
-
-          # Commit and push changes
-          git config --global user.name "GitVault Bot"
-          git config --global user.email "bot@gitvault.app"
-          git add .gitvault README.md
-          git commit -m "Update GitVault CID and README badge [skip ci]" || exit 0
-          git push
