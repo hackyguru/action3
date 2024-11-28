@@ -47,11 +47,10 @@ jobs:
             echo "Uploading chunk $CHUNK_NUM of $TOTAL_CHUNKS"
             RESPONSE=$(curl -X POST \
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -H "X-Repository-ID: ${{ github.repository_id }}" \
-              -H "X-User-ID: ${{ github.actor }}" \
-              -H "X-Repo-Name: ${{ github.event.repository.name }}" \
-              -H "X-Repo-Owner: ${{ github.repository_owner }}" \
+              -H "X-GitHub-Repository: ${{ github.repository }}" \
               -H "X-Upload-Id: ${{ env.UPLOAD_ID }}" \
+              -H "X-Chunk-Number: $CHUNK_NUM" \
+              -H "X-Total-Chunks: $TOTAL_CHUNKS" \
               -F "chunk=@$chunk" \
               "$API_URL/api/storage/upload/chunk")
             echo "Response: $RESPONSE"
@@ -65,8 +64,6 @@ jobs:
           RESULT=$(curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -H "X-Repository-ID: ${{ github.repository_id }}" \
-            -H "X-User-ID: ${{ github.actor }}" \
             -d "{\"uploadId\":\"${{ env.UPLOAD_ID }}\"}" \
             "$API_URL/api/storage/upload/complete")
           
