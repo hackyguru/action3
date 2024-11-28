@@ -73,11 +73,34 @@ jobs:
       - name: Update .gitvault and README
         if: steps.upload.outputs.cid != ''
         run: |
-          # Create or update .gitvault file
-          echo "latest_cid: ${{ steps.upload.outputs.cid }}" > .gitvault
-          echo "last_backup: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> .gitvault
+          # Create or update .gitvault file with history
+          if [ -f .gitvault ]; then
+            # Preserve existing content and add new entry
+            TEMP_FILE=$(mktemp)
+            # Get the latest CID section
+            grep -B1 "^cid:" .gitvault > $TEMP_FILE || true
+            echo "history:" >> $TEMP_FILE
+            grep -A100 "^history:" .gitvault | tail -n +2 >> $TEMP_FILE || true
+            # Add current CID to history
+            echo "  - cid: ${{ steps.upload.outputs.cid }}" >> $TEMP_FILE
+            echo "    date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $TEMP_FILE
+            # Update latest CID
+            echo "latest:" > .gitvault
+            echo "  cid: ${{ steps.upload.outputs.cid }}" >> .gitvault
+            echo "  date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> .gitvault
+            cat $TEMP_FILE >> .gitvault
+            rm $TEMP_FILE
+          else
+            # Create new .gitvault file
+            echo "latest:" > .gitvault
+            echo "  cid: ${{ steps.upload.outputs.cid }}" >> .gitvault
+            echo "  date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> .gitvault
+            echo "history:" >> .gitvault
+            echo "  - cid: ${{ steps.upload.outputs.cid }}" >> .gitvault
+            echo "    date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> .gitvault
+          fi
 
-          # Update README.md with badge
+          # Update README.md with badge (always shows latest CID)
           if [ -f README.md ]; then
             # Remove old badge if exists
             sed -i '/^[![GitVault Backup]/d' README.md
