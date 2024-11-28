@@ -64,6 +64,8 @@ jobs:
           RESULT=$(curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
+            -H "X-Repository-ID: ${{ github.repository_id }}" \
+            -H "X-User-ID: ${{ github.actor }}" \
             -d "{\"uploadId\":\"${{ env.UPLOAD_ID }}\"}" \
             "$API_URL/api/storage/upload/complete")
           
